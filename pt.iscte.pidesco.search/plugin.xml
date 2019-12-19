@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension-point id="suggestions" name="Suggestions" schema="schema/provider.exsd"/>
+   <extension
+         id="searchview"
+         name="Search"
+         point="pt.iscte.pidesco.view">
+      <view
+            class="pt.iscte.pidesco.search.SearchView"
+            icon="smile.png">
+      </view>
+   </extension>
+
+</plugin>
