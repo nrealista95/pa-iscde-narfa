@@ -6,6 +6,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
@@ -38,19 +39,20 @@ import pt.iscte.pidesco.search.extensibility.SearchSuggestion;
 import pt.iscte.pidesco.extensibility.PidescoView;
 import pt.iscte.pidesco.javaeditor.service.JavaEditorServices;
 
-//import com.google.common.primitives.Chars;
-
 public class SearchView implements PidescoView {
 
 	private Queue<Integer> results = new LinkedList<Integer>();
+	private HashMap<String, int[]> resultsFromExtensions = new HashMap<String, int[]>();
+	private ArrayList<Button> checkBtnsFromExtensions = new ArrayList<Button>();
+	IConfigurationElement[] elements;
 	private String wordInput;
 	private File openedFile;
-	
+
 	@Override
 	public void createContents(Composite viewArea, Map<String, Image> imageMap) {
-		// TODO Auto-generated method stub
-		BundleContext context = Activator.getContext();
 		
+		BundleContext context = Activator.getContext();
+
 		GridLayout layout = new GridLayout(3, true);
 		viewArea.setLayout(layout);
 		Text text = new Text(viewArea, SWT.FILL);
@@ -58,11 +60,11 @@ public class SearchView implements PidescoView {
 		text.setText("find");
 		Button findBtn = new Button(viewArea,SWT.PUSH);
 		findBtn.setText("find");
-//		findBtn.setEnabled(false);
-	    final Button nextBtn = new Button(viewArea, SWT.ARROW | SWT.RIGHT);
-	    nextBtn.setBounds(100, 55, 20, 15);
-//	    final Button previousBtn = new Button(viewArea, SWT.ARROW | SWT.LEFT);
-//	    previousBtn.setBounds(100, 70, 20, 15);
+		//		findBtn.setEnabled(false);
+		final Button nextBtn = new Button(viewArea, SWT.ARROW | SWT.RIGHT);
+		nextBtn.setBounds(100, 55, 20, 15);
+		//	    final Button previousBtn = new Button(viewArea, SWT.ARROW | SWT.LEFT);
+		//	    previousBtn.setBounds(100, 70, 20, 15);
 		Button checkMethodsBtn = new Button(viewArea, SWT.CHECK);
 		Button checkVariablesBtn = new Button(viewArea, SWT.CHECK);
 		Button checkFieldsBtn = new Button(viewArea, SWT.CHECK);
@@ -80,11 +82,13 @@ public class SearchView implements PidescoView {
 				wordInput = text.getText();
 				openedFile = javaServ.getOpenedFile();
 				ArrayList<String> selectedCheckBoxes = new ArrayList<String>();
+
+				results.clear();
 				
-				if(!checkMethodsBtn.getSelection() && !checkVariablesBtn.getSelection() && !checkFieldsBtn.getSelection())
-					new Label(viewArea, SWT.COLOR_DARK_RED).setText("You must select a checkbox");
+				if(!checkMethodsBtn.getSelection() && !checkVariablesBtn.getSelection() && !checkFieldsBtn.getSelection() && !isExtChecked())
+					System.out.println("nothing was selected");
 				else {
-					// TOIMPROVE it must be prepared to receive more checkboxes 
+					// Hard coded way to check if the standard boxes are selected 
 					if(checkMethodsBtn.getSelection())
 						selectedCheckBoxes.add("methods");
 					if(checkVariablesBtn.getSelection())
@@ -92,13 +96,23 @@ public class SearchView implements PidescoView {
 					if(checkFieldsBtn.getSelection())
 						selectedCheckBoxes.add("fields");
 					System.out.println(selectedCheckBoxes.toString());
-					
+
 					try {
-						if(!selectedCheckBoxes.isEmpty())
+						if(!selectedCheckBoxes.isEmpty() || isExtChecked())
 							processFile(openedFile, wordInput, selectedCheckBoxes);
 					} catch (FileNotFoundException e1) {
 						// TODO Auto-generated catch block
 						e1.printStackTrace();
+					}
+
+					for(Button btn : checkBtnsFromExtensions) {
+						if(btn.getSelection()) {
+							System.out.println(btn.getText() + " is selected");
+							int[] extOffsets = resultsFromExtensions.get(btn.getText());
+							for(int offset:  extOffsets) {
+								results.add(offset);
+							}
+						}
 					}
 					
 					if(!results.isEmpty())
@@ -108,38 +122,52 @@ public class SearchView implements PidescoView {
 					viewArea.layout();
 				}
 			}			
-			
 
+			// --------------------------Helper methods--------------------------------
 			private void processFile(File f, String input, ArrayList<String> selectedCheckBoxes) throws FileNotFoundException {
 				SearchEngine se = new SearchEngine(input, selectedCheckBoxes);
 				javaServ.parseFile(f, se);
 				results = se.getResults();
+				
+				// giving to the extensions the resources needed for the search
+				for(IConfigurationElement e : elements) {
+					String name = e.getAttribute("name");
+					try {
+						SearchSuggestion option = (SearchSuggestion) e.createExecutableExtension("class");
+						resultsFromExtensions.put(name, option.offsetResults(f, input));
+						System.out.println("results from extensions: " + resultsFromExtensions);
+					} catch (CoreException e1) {
+						e1.printStackTrace();
+					}
+				}
+			}
+			
+			private boolean isExtChecked() {
+				for(Button btn : checkBtnsFromExtensions) {
+					if(btn.getSelection())
+						return true;
+				}
+				return false;
 			}
 		});
-		
+
 		nextBtn.addSelectionListener(new SelectionAdapter() {
-				@Override
-				public void widgetSelected(SelectionEvent e) {
-					if(!results.isEmpty()) {
-						javaServ.selectText(openedFile, results.poll(), wordInput.length());
-					}
-				} 
+			@Override
+			public void widgetSelected(SelectionEvent e) {
+				if(!results.isEmpty()) {
+					javaServ.selectText(openedFile, results.poll(), wordInput.length());
+				}
+			} 
 		});
-		
-		System.out.println("Initiating extension point...");
+
+		//Get the extensions and create check boxes 
 		IExtensionRegistry reg = Platform.getExtensionRegistry();
-		IConfigurationElement[] elements = reg.getConfigurationElementsFor("pt.iscte.pidesco.search.suggestions");
+		elements = reg.getConfigurationElementsFor("pt.iscte.pidesco.search.suggestions");
 		for(IConfigurationElement e : elements) {
-			System.out.println(e);
 			String name = e.getAttribute("name");
 			Button newCheckBtn = new Button(viewArea, SWT.CHECK);
 			newCheckBtn.setText(name);
-			try {
-				SearchSuggestion option = (SearchSuggestion) e.createExecutableExtension("class");
-			} catch (CoreException e1) {
-				e1.printStackTrace();
-			}
-			
+			checkBtnsFromExtensions.add(newCheckBtn);			
 		}
 	}
 

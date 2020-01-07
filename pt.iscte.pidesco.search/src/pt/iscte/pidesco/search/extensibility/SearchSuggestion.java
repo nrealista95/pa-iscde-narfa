@@ -1,6 +1,8 @@
 package pt.iscte.pidesco.search.extensibility;
 
+import java.io.File;
+
 public interface SearchSuggestion {
 
-	void Suggestion(String name);
+	int[] offsetResults(File file, String word);
 }

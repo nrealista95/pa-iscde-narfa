@@ -4,14 +4,15 @@ public interface ClassSearchServices {
 
 	/**
 	 * Not implemented
-	 * @return number of matches of the found word
+	 * @return the results
 	 */
-	int numberOfMatches();
+	int[] getAvailableOptions(String word); 
 	
 	/**
 	 * Not implemented
 	 * @param word -> the string you require to search (it has to be a complete word)
 	 * @param options -> set which javaTypes you want to search [variables, methods, fields]
+	 * @return returns the results of the search, returns an empty array if it does not find matches
 	 */
-	void wordToSearch(String word, boolean[] options);
+	String[] wordToSearch(String word, boolean[] options);
 }
