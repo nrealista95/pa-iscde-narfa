@@ -44,7 +44,7 @@ public class SearchView implements PidescoView {
 	private Queue<Integer> results = new LinkedList<Integer>();
 	private HashMap<String, int[]> resultsFromExtensions = new HashMap<String, int[]>();
 	private ArrayList<Button> checkBtnsFromExtensions = new ArrayList<Button>();
-	IConfigurationElement[] elements;
+	private IConfigurationElement[] elements;
 	private String wordInput;
 	private File openedFile;
 
@@ -160,7 +160,7 @@ public class SearchView implements PidescoView {
 			} 
 		});
 
-		//Get the extensions and create check boxes 
+		// Get the extensions and create check boxes 
 		IExtensionRegistry reg = Platform.getExtensionRegistry();
 		elements = reg.getConfigurationElementsFor("pt.iscte.pidesco.search.suggestions");
 		for(IConfigurationElement e : elements) {
