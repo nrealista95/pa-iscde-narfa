@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+   <extension
+         id="byeworld"
+         name="Bye World"
+         point="pt.iscte.pidesco.search.suggestions">
+      <suggestion
+            class="pt.iscte.pidesco.byeworld.Byeworld"
+            name="byeworld">
+      </suggestion>
+   </extension>
+
+</plugin>
